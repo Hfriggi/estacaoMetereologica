@@ -1,8 +1,13 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, status
 import psycopg2
+from psycopg2.extras import RealDictCursor
 import os
+from objects.schemas import MedidaResponse
+from typing import List
 from migrate import run_migration
 from pathlib import Path
+from db import get_conn
+from objects.medidas import Medidas
 
 
 # =========================
@@ -42,20 +47,71 @@ def startup_event():
     run_migration()
 
 
-# =========================
-# Banco de dados
-# =========================
-def get_conn():
-    return psycopg2.connect(os.environ["DATABASE_URL"])
+# Banco de dados: `get_conn()` é importado de `db.py`
 
 
 # =========================
 # Endpoints
 # =========================
-@app.get("/medidas")
+@app.get("/medidas", response_model=list[MedidaResponse])
 def listar_medidas():
     with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT * FROM medidas ORDER BY data DESC LIMIT 100")
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("""
+                SELECT *
+                FROM medidas
+                ORDER BY data DESC
+            """)
             rows = cur.fetchall()
-    return rows
+
+    resultado = []
+
+    for r in rows:
+        resultado.append({
+            "id": r["id"],
+            "data": r["data"],
+            "temperatura": {
+                "sensor1": r["temp1"],
+                "sensor2": r["temp2"],
+                "sensor3": r["temp3"],
+                "sensor4": r["temp4"],
+            },
+            "umidade": {
+                "sensor1": r["umid1"],
+                "sensor2": r["umid2"],
+                "sensor3": r["umid3"],
+            },
+            "pressao": {
+                "sensor1": r["press1"],
+                "sensor2": r["press2"],
+                "sensor3": r["press3"],
+            },
+            "luminosidade": r["lum"],
+            "vento": {
+                "velocidade": r["vel_vent"],
+                "direcao": r["dir_vent"],
+            }
+        })
+
+    return resultado
+
+@app.post("/medidas")
+def inserir_medidas(med: Medidas):
+    payload = med.dict(exclude_none=True)
+
+    if not payload:
+        raise HTTPException(status_code=404, detail="É necessário informar ao menos um campo de medida")
+
+    cols = ", ".join(payload.keys())
+    placeholders = ", ".join(["%s"] * len(payload))
+    values = list(payload.values())
+
+    sql = f"INSERT INTO medidas ({cols}) VALUES ({placeholders}) RETURNING id;"
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql, values)
+            new_id = cur.fetchone()[0]
+            conn.commit()
+
+    return {"id": new_id}
