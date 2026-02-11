@@ -1,7 +1,7 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header, Depends
 from psycopg2.extras import RealDictCursor
 from typing import List
-
+import os
 from db import get_conn, get_environment
 from migrate import run_migration
 from objects.schemas import MedidaResponse
@@ -30,12 +30,26 @@ def startup_event():
 
     run_migration()
 
+def verify_token(token: str = Header(...)):
+    expected_token = os.getenv("API_TOKEN")
+
+    if not expected_token:
+        raise HTTPException(
+            status_code=500,
+            detail="API_TOKEN não configurado no servidor"
+        )
+
+    if token != expected_token:
+        raise HTTPException(
+            status_code=401,
+            detail="Token inválido"
+        )
 
 # =========================
 # GET /medidas
 # =========================
 @app.get("/medidas", response_model=List[MedidaResponse])
-def listar_medidas():
+def listar_medidas(auth: None = Depends(verify_token)):
     with get_conn() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("""
@@ -79,7 +93,7 @@ def listar_medidas():
 # POST /medidas
 # =========================
 @app.post("/medidas")
-def inserir_medidas(med: Medidas):
+def inserir_medidas(med: Medidas, auth: None = Depends(verify_token)):
     payload = med.dict(exclude_none=True)
 
     if not payload:
@@ -111,7 +125,7 @@ def inserir_medidas(med: Medidas):
 # =========================
 
 @app.delete("/medidas")
-def deletar_medidas_by_id(id: int):
+def deletar_medidas_by_id(id: int, auth: None = Depends(verify_token)):
     sql = "DELETE FROM medidas WHERE id = %s;"
 
     with get_conn() as conn:
