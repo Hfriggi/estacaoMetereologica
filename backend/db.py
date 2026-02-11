@@ -41,13 +41,13 @@ def get_conn():
 
     if env == "prod":
         return psycopg2.connect(
-            host="db.fcywmkuciwdoxdlayjaq.supabase.co",
-            port=5432,
-            dbname="postgres",
-            user="postgres",
+            host=os.getenv("PROD_DB_HOST"),
+            port=os.getenv("PROD_DB_PORT"),
+            dbname=os.getenv("PROD_DB_NAME"),
+            user=os.getenv("PROD_DB_USER"),
             password=os.getenv("PROD_DB_PASSWORD"),
             sslmode="require"
-        )
+    )
 
     # DEV
     return psycopg2.connect(
