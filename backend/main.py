@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, status
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import os
+from db import get_environment
 from objects.schemas import MedidaResponse
 from typing import List
 from migrate import run_migration
@@ -44,11 +45,15 @@ app = FastAPI()
 # =========================
 @app.on_event("startup")
 def startup_event():
-    run_migration()
+        env = get_environment()
 
-
-# Banco de dados: `get_conn()` é importado de `db.py`
-
+        if env == "prod":
+            print("🌎 Backend iniciado em PRODUÇÃO")
+            print("🔐 Banco: SUPABASE")
+        else:
+            print("🧪 Backend iniciado em DESENVOLVIMENTO")
+            print("💻 Banco: LOCAL")
+        run_migration()
 
 # =========================
 # Endpoints
