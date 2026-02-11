@@ -3,6 +3,9 @@ import psycopg2
 from pathlib import Path
 
 
+# =========================
+# Carregar .env manualmente
+# =========================
 def load_env(path=".env"):
     env_path = Path(path)
 
@@ -23,28 +26,34 @@ def load_env(path=".env"):
 load_env()
 
 
+# =========================
+# Ambiente
+# =========================
 def get_environment():
     return os.getenv("ENVIRONMENT", "dev").lower()
 
 
-def get_database_url():
+# =========================
+# Conexão com banco
+# =========================
+def get_conn():
     env = get_environment()
 
     if env == "prod":
-        return os.environ["DATABASE_URL_PROD"]
-    else:
-        return os.environ["DATABASE_URL_DEV"]
+        return psycopg2.connect(
+            host="db.fcywmkuciwdoxdlayjaq.supabase.co",
+            port=5432,
+            dbname="postgres",
+            user="postgres",
+            password=os.getenv("PROD_DB_PASSWORD"),
+            sslmode="require"
+        )
 
-
-def get_conn():
-    database_url = get_database_url()
-
-    try:
-        if get_environment() == "prod":
-            return psycopg2.connect(database_url, sslmode="require")
-        else:
-            return psycopg2.connect(database_url)
-
-    except Exception as e:
-        print(f"❌ Erro ao conectar no banco: {e}")
-        raise
+    # DEV
+    return psycopg2.connect(
+        host="localhost",
+        port=5432,
+        dbname="estacao_meteo",
+        user="meteo_user",
+        password=os.getenv("DEV_DB_PASSWORD")
+    )

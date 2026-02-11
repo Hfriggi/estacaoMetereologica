@@ -1,37 +1,11 @@
-from fastapi import FastAPI, HTTPException, status
-import psycopg2
+from fastapi import FastAPI, HTTPException
 from psycopg2.extras import RealDictCursor
-import os
-from db import get_environment
-from objects.schemas import MedidaResponse
 from typing import List
+
+from db import get_conn, get_environment
 from migrate import run_migration
-from pathlib import Path
-from db import get_conn
+from objects.schemas import MedidaResponse
 from objects.medidas import Medidas
-
-
-# =========================
-# Carregar .env manualmente
-# =========================
-def load_env(path=".env"):
-    env_path = Path(path)
-
-    if not env_path.exists():
-        return
-
-    with env_path.open() as f:
-        for line in f:
-            line = line.strip()
-
-            if not line or line.startswith("#"):
-                continue
-
-            key, value = line.split("=", 1)
-            os.environ.setdefault(key, value)
-
-
-load_env()
 
 
 # =========================
@@ -45,20 +19,22 @@ app = FastAPI()
 # =========================
 @app.on_event("startup")
 def startup_event():
-        env = get_environment()
+    env = get_environment()
 
-        if env == "prod":
-            print("🌎 Backend iniciado em PRODUÇÃO")
-            print("🔐 Banco: SUPABASE")
-        else:
-            print("🧪 Backend iniciado em DESENVOLVIMENTO")
-            print("💻 Banco: LOCAL")
-        run_migration()
+    if env == "prod":
+        print("🌎 Backend iniciado em PRODUÇÃO")
+        print("🔐 Banco: SUPABASE")
+    else:
+        print("🧪 Backend iniciado em DESENVOLVIMENTO")
+        print("💻 Banco: LOCAL")
+
+    run_migration()
+
 
 # =========================
-# Endpoints
+# GET /medidas
 # =========================
-@app.get("/medidas", response_model=list[MedidaResponse])
+@app.get("/medidas", response_model=List[MedidaResponse])
 def listar_medidas():
     with get_conn() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -69,10 +45,8 @@ def listar_medidas():
             """)
             rows = cur.fetchall()
 
-    resultado = []
-
-    for r in rows:
-        resultado.append({
+    return [
+        {
             "id": r["id"],
             "data": r["data"],
             "temperatura": {
@@ -96,22 +70,33 @@ def listar_medidas():
                 "velocidade": r["vel_vent"],
                 "direcao": r["dir_vent"],
             }
-        })
+        }
+        for r in rows
+    ]
 
-    return resultado
 
+# =========================
+# POST /medidas
+# =========================
 @app.post("/medidas")
 def inserir_medidas(med: Medidas):
     payload = med.dict(exclude_none=True)
 
     if not payload:
-        raise HTTPException(status_code=404, detail="É necessário informar ao menos um campo de medida")
+        raise HTTPException(
+            status_code=400,
+            detail="É necessário informar ao menos um campo de medida"
+        )
 
     cols = ", ".join(payload.keys())
     placeholders = ", ".join(["%s"] * len(payload))
     values = list(payload.values())
 
-    sql = f"INSERT INTO medidas ({cols}) VALUES ({placeholders}) RETURNING id;"
+    sql = f"""
+        INSERT INTO medidas ({cols})
+        VALUES ({placeholders})
+        RETURNING id;
+    """
 
     with get_conn() as conn:
         with conn.cursor() as cur:
@@ -120,3 +105,22 @@ def inserir_medidas(med: Medidas):
             conn.commit()
 
     return {"id": new_id}
+
+# =========================
+# DELETE /medidas
+# =========================
+
+@app.delete("/medidas")
+def deletar_medidas_by_id(id: int):
+    sql = "DELETE FROM medidas WHERE id = %s;"
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql, (id,))
+            deleted_count = cur.rowcount
+            conn.commit()
+
+    if deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Medida não encontrada")
+
+    return {"message": f"Medida com id {id} deletada com sucesso"}
