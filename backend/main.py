@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Header, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from psycopg2.extras import RealDictCursor
 from typing import List
 import os
@@ -11,7 +12,17 @@ from objects.medidas import Medidas
 # =========================
 # App FastAPI
 # =========================
+
 app = FastAPI()
+
+# Adiciona CORS para permitir requisições do frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Ou especifique o domínio do seu frontend
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # =========================
