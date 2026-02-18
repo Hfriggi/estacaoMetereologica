@@ -24,6 +24,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# =========================
+# OPTIONS /medidas (CORS preflight)
+# =========================
+@app.options("/medidas")
+def options_medidas():
+    return {}
+
 
 # =========================
 # Startup: migration

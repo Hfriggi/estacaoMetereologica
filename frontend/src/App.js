@@ -6,9 +6,9 @@ function App() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch("http://localhost:8000/medidas", {
+    fetch("https://estacaometereologica.onrender.com/medidas", {
       headers: {
-        token: "SENHA_SUPER_SECRETA"
+        token: process.env.REACT_APP_TOKEN
       }
     })
       .then((res) => {
