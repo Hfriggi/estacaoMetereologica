@@ -42,12 +42,86 @@ function App() {
   const horario = new Date(medida.data).toLocaleString();
 
   return (
-    <div style={{ fontFamily: 'sans-serif', maxWidth: 400, margin: '2rem auto', padding: 24, border: '1px solid #ddd', borderRadius: 8, background: '#f9f9f9' }}>
-      <h2>Estação Meteorológica</h2>
-      <div><strong>Horário:</strong> {horario}</div>
-      <div><strong>Temperatura:</strong> {temp !== null ? temp + ' °C' : 'N/A'}</div>
-      <div><strong>Umidade:</strong> {umid !== null ? umid + ' %' : 'N/A'}</div>
-      <div><strong>Pressão:</strong> {press !== null ? press + ' hPa' : 'N/A'}</div>
+    <div style={{
+      minHeight: '100vh',
+      background: '#23272f',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontFamily: 'Segoe UI, sans-serif',
+    }}>
+      <div style={{
+        background: '#2d323c',
+        borderRadius: 16,
+        boxShadow: '0 4px 24px #0006',
+        padding: '40px 32px',
+        minWidth: 350,
+        maxWidth: 420,
+        color: '#f3f3f3',
+      }}>
+        <h1 style={{
+          textAlign: 'center',
+          marginBottom: 32,
+          fontWeight: 700,
+          letterSpacing: 1,
+          fontSize: 28,
+          color: '#ffb347',
+        }}>Estação Meteorológica</h1>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 24,
+        }}>
+          <div style={{
+            background: '#23272f',
+            borderRadius: 8,
+            padding: '16px 12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: 18,
+          }}>
+            <span style={{ color: '#aaa' }}>Horário</span>
+            <span style={{ fontWeight: 500 }}>{horario}</span>
+          </div>
+          <div style={{
+            display: 'flex',
+            gap: 16,
+            justifyContent: 'space-between',
+          }}>
+            <div style={{
+              flex: 1,
+              background: '#23272f',
+              borderRadius: 8,
+              padding: '16px 12px',
+              textAlign: 'center',
+            }}>
+              <span style={{ color: '#ff6b6b', fontWeight: 600, fontSize: 16 }}>Temperatura</span>
+              <div style={{ fontSize: 22, fontWeight: 700, marginTop: 8 }}>{temp !== null ? temp + ' °C' : 'N/A'}</div>
+            </div>
+            <div style={{
+              flex: 1,
+              background: '#23272f',
+              borderRadius: 8,
+              padding: '16px 12px',
+              textAlign: 'center',
+            }}>
+              <span style={{ color: '#4ecdc4', fontWeight: 600, fontSize: 16 }}>Umidade</span>
+              <div style={{ fontSize: 22, fontWeight: 700, marginTop: 8 }}>{umid !== null ? umid + ' %' : 'N/A'}</div>
+            </div>
+            <div style={{
+              flex: 1,
+              background: '#23272f',
+              borderRadius: 8,
+              padding: '16px 12px',
+              textAlign: 'center',
+            }}>
+              <span style={{ color: '#ffd166', fontWeight: 600, fontSize: 16 }}>Pressão</span>
+              <div style={{ fontSize: 22, fontWeight: 700, marginTop: 8 }}>{press !== null ? press + ' hPa' : 'N/A'}</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
