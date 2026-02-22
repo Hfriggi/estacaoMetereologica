@@ -77,35 +77,7 @@ function App() {
       });
   }, [diasAtras]);
 
-  // Gráfico: pegar 12 pontos espaçados
-  let graficoData = null;
-  if (medidasDia && medidasDia.length > 0) {
-    // Inverter para ordem crescente (00:00 -> 23:59)
-    const medidasAsc = [...medidasDia].reverse();
-    const step = Math.floor(medidasAsc.length / 12);
-    const pontos = [];
-    for (let i = 1; i <= 12; i++) {
-      const idx = i * step - 1;
-      if (medidasAsc[idx]) {
-        pontos.push(medidasAsc[idx]);
-      }
-    }
-    graficoData = {
-      labels: pontos.map(m =>
-        new Date(m.data).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-      ),
-      datasets: [
-        {
-          label: "Temperatura (°C)",
-          data: pontos.map(m => m.temperatura?.sensor1 ?? null),
-          fill: false,
-          borderColor: "#ff6b6b",
-          backgroundColor: "#ffb347",
-          tension: 0.3,
-        },
-      ],
-    };
-  }
+  // ...existing code...
 
   if (loading) return <div>Carregando...</div>;
   if (error) return <div>Erro: {error}</div>;
@@ -223,16 +195,16 @@ function App() {
             background: '#23272f', color: '#fff', border: '1px solid #444', borderRadius: 6, padding: '4px 12px', fontSize: 16
           }}
         >
-          {[...Array(7)].map((_, i) => (
-            <option key={i} value={i}>{i + 1}</option>
+          {new Array(7).fill(null).map((_, idx) => (
+            <option key={`dia-option-${idx}`} value={idx}>{idx + 1}</option>
           ))}
         </select>
         <span style={{ marginLeft: 8, color: '#aaa', fontSize: 14 }}>
-          ({(() => {
+          {(() => {
             const d = new Date();
             d.setDate(d.getDate() - diasAtras);
-            return d.toLocaleDateString();
-          })()})
+            return `(${d.toLocaleDateString()})`;
+          })()}
         </span>
       </div>
 
@@ -450,11 +422,9 @@ function App() {
               </div>
             );
           })()}
-          {loadingDia ? (
-            <div>Carregando gráfico...</div>
-          ) : errorDia ? (
-            <div>Erro: {errorDia}</div>
-          ) : (() => {
+          {(() => {
+            if (loadingDia) return <div>Carregando gráfico...</div>;
+            if (errorDia) return <div>Erro: {errorDia}</div>;
             // Gráfico de pressão
             let data = null;
             if (medidasDia && medidasDia.length > 0) {
@@ -481,25 +451,27 @@ function App() {
                 ],
               };
             }
-            return data ? (
-              <Line
-                data={data}
-                options={{
-                  responsive: true,
-                  plugins: {
-                    legend: { display: false },
-                    tooltip: { enabled: true },
-                  },
-                  scales: {
-                    x: { grid: { color: "#444" }, ticks: { color: "#ccc" } },
-                    y: { grid: { color: "#444" }, ticks: { color: "#ccc" } },
-                  },
-                }}
-                height={220}
-              />
-            ) : (
-              <div>Nenhum dado para o gráfico.</div>
-            );
+            if (data) {
+              return (
+                <Line
+                  data={data}
+                  options={{
+                    responsive: true,
+                    plugins: {
+                      legend: { display: false },
+                      tooltip: { enabled: true },
+                    },
+                    scales: {
+                      x: { grid: { color: "#444" }, ticks: { color: "#ccc" } },
+                      y: { grid: { color: "#444" }, ticks: { color: "#ccc" } },
+                    },
+                  }}
+                  height={220}
+                />
+              );
+            } else {
+              return <div>Nenhum dado para o gráfico.</div>;
+            }
           })()}
         </div>
       </div>
