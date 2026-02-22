@@ -1,3 +1,5 @@
+from datetime import date, datetime, timedelta
+
 from fastapi import FastAPI, HTTPException, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from psycopg2.extras import RealDictCursor
@@ -77,35 +79,45 @@ def listar_medidas(auth: None = Depends(verify_token)):
             """)
             rows = cur.fetchall()
 
-    return [
-        {
-            "id": r["id"],
-            "data": r["data"],
-            "temperatura": {
-                "sensor1": r["temp1"],
-                "sensor2": r["temp2"],
-                "sensor3": r["temp3"],
-                "sensor4": r["temp4"],
-            },
-            "umidade": {
-                "sensor1": r["umid1"],
-                "sensor2": r["umid2"],
-                "sensor3": r["umid3"],
-            },
-            "pressao": {
-                "sensor1": r["press1"],
-                "sensor2": r["press2"],
-                "sensor3": r["press3"],
-            },
-            "luminosidade": r["lum"],
-            "vento": {
-                "velocidade": r["vel_vent"],
-                "direcao": r["dir_vent"],
-            }
-        }
-        for r in rows
-    ]
+    return [MedidaResponse.from_db(r) for r in rows]
 
+@app.get("/medidasLatest", response_model=MedidaResponse)
+def listar_medida_latest(auth: None = Depends(verify_token)):
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("""
+                SELECT *
+                FROM medidas
+                ORDER BY data DESC
+                LIMIT 1
+            """)
+            row = cur.fetchone()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Nenhuma medida encontrada")
+
+    return MedidaResponse.from_db(row)
+
+@app.get("/medidasByDay", response_model=List[MedidaResponse])
+def listar_medidas_por_dia(
+    data: date,
+    auth: None = Depends(verify_token)
+):
+    data_inicio = datetime.combine(data, datetime.min.time())
+    data_fim = data_inicio + timedelta(days=1)
+
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("""
+                SELECT *
+                FROM medidas
+                WHERE data >= %s
+                  AND data < %s
+                ORDER BY data DESC
+            """, (data_inicio, data_fim))
+            rows = cur.fetchall()
+
+    return [MedidaResponse.from_db(r) for r in rows]
 
 # =========================
 # POST /medidas
